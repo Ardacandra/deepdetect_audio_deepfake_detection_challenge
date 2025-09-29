@@ -205,3 +205,31 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Ignore data files
+data/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Ignore output files
+output/
+
+# Ignore model files
+models/
+
+# Ignore sh files
+*.sh
+
+# Ignore catboost output
+catboost_info/*
+
+# Ignore sandbox notebook
+sandbox.ipynb
+
+# Ignore config files 
+config/
