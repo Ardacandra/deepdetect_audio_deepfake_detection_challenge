@@ -232,4 +232,4 @@ catboost_info/*
 sandbox.ipynb
 
 # Ignore config files 
-config/
+configs/

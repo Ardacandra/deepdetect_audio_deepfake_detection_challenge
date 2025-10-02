@@ -1,0 +1,22 @@
+#path containing the embedded input
+data_path : "output/embeddings/wav2vec2/"
+
+#path to store output and predictions
+output_path : "output/"
+preds_path : "output/preds/"
+
+#path to store the trained models
+models_path : "models/"
+
+#run identifier
+run_id : "test_run"
+
+#define model class defined in src/model.py
+model_class : "SimpleAudioClassifier"
+
+#model training configurations
+criterion : "CrossEntropyLoss"
+# criterion : "BCEWithLogitsLoss"
+optimizer : "Adam"
+learning_rate : 0.01
+epochs : 30

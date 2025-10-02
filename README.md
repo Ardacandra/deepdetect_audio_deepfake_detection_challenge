@@ -27,3 +27,17 @@ You need to place your `kaggle.json` in `~/.kaggle/` first.
 kaggle competitions download -c deep-detect -p data/
 unzip data/*.zip -d data/
 ```
+
+### How to Run
+
+1. Train network based on the specified configuration
+
+```
+python train.py --config configs/default.yaml
+```
+
+2. Get the trained network predictions on the holdout set
+
+```
+python predict.py --config configs/default.yaml
+```
