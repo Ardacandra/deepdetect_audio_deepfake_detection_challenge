@@ -1,6 +1,7 @@
 import torch
 import torchaudio
 import torch.nn as nn
+import torch.nn.functional as F
 import os
 from sklearn.metrics import f1_score
 
@@ -27,7 +28,7 @@ class SimpleAudioClassifier(nn.Module):
 def train_model(model, train_loader, val_loader, criterion, optimizer, device, logger, model_save_path, epochs=30):
 
     best_val_loss = float("inf")
-    patience, patience_counter = 10, 0
+    patience, patience_counter = 20, 0
 
     train_losses = []
     train_f1s = []
@@ -99,3 +100,68 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, l
                 break
         
     return train_losses, train_f1s, val_losses, val_f1s
+
+class ResidualBlock(nn.Module):
+    def __init__(self, dim, dropout=0.3):
+        super().__init__()
+        self.fc1 = nn.Linear(dim, dim)
+        self.bn1 = nn.BatchNorm1d(dim)
+        self.fc2 = nn.Linear(dim, dim)
+        self.bn2 = nn.BatchNorm1d(dim)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        identity = x
+        out = F.relu(self.bn1(self.fc1(x)))
+        out = self.dropout(out)
+        out = self.bn2(self.fc2(out))
+        out = out + identity   # residual connection
+        out = F.relu(out)
+        return out
+
+class SelfAttentionBlock(nn.Module):
+    """Simple scaled dot-product self-attention (projected to same dim)."""
+    def __init__(self, dim):
+        super().__init__()
+        self.query = nn.Linear(dim, dim)
+        self.key   = nn.Linear(dim, dim)
+        self.value = nn.Linear(dim, dim)
+        self.scale = dim ** -0.5
+
+    def forward(self, x):
+        # x: (batch, dim)
+        # reshape to (batch, seq_len=1, dim) so attention works
+        q = self.query(x).unsqueeze(1)  # (batch, 1, dim)
+        k = self.key(x).unsqueeze(1)    # (batch, 1, dim)
+        v = self.value(x).unsqueeze(1)  # (batch, 1, dim)
+
+        attn_scores = torch.matmul(q, k.transpose(-2, -1)) * self.scale  # (batch, 1, 1)
+        attn_weights = F.softmax(attn_scores, dim=-1)                    # (batch, 1, 1)
+        out = torch.matmul(attn_weights, v)                              # (batch, 1, dim)
+
+        return out.squeeze(1)  # back to (batch, dim)
+
+class EnhancedAudioClassifier(nn.Module):
+    def __init__(self, input_dim, num_classes, hidden_dim=256, dropout=0.3):
+        super().__init__()
+        self.fc_in = nn.Linear(input_dim, hidden_dim)
+        self.bn_in = nn.BatchNorm1d(hidden_dim)
+
+        self.res_block1 = ResidualBlock(hidden_dim, dropout)
+        self.attn = SelfAttentionBlock(hidden_dim)
+        self.res_block2 = ResidualBlock(hidden_dim, dropout)
+
+        self.fc_mid = nn.Linear(hidden_dim, hidden_dim // 2)
+        self.bn_mid = nn.BatchNorm1d(hidden_dim // 2)
+        self.dropout = nn.Dropout(dropout)
+
+        self.fc_out = nn.Linear(hidden_dim // 2, num_classes)
+
+    def forward(self, x):
+        x = F.relu(self.bn_in(self.fc_in(x)))
+        x = self.res_block1(x)
+        x = self.attn(x)
+        x = self.res_block2(x)
+        x = F.relu(self.bn_mid(self.fc_mid(x)))
+        x = self.dropout(x)
+        return self.fc_out(x)
