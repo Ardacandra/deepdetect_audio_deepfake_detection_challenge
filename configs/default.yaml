@@ -15,6 +15,7 @@ run_id : "test_run"
 model_class : "SimpleAudioClassifier"
 
 #model training configurations
+num_classes : 2
 criterion : "CrossEntropyLoss"
 # criterion : "BCEWithLogitsLoss"
 optimizer : "Adam"

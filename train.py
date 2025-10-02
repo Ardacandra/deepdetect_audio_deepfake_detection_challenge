@@ -43,7 +43,7 @@ def main(config_path):
     logger.info(f"starting network training...")
     X_batch, y_batch, path_batch = next(iter(train_loader))
     input_dim = X_batch.shape[1]
-    num_classes = 2
+    num_classes = cfg['num_classes']
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model = eval(cfg['model_class'])(input_dim, num_classes).to(device)
