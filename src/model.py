@@ -40,7 +40,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, l
         total_loss = 0
         all_preds, all_labels = [], []
 
-        for X_batch, y_batch in train_loader:
+        for X_batch, y_batch, path_batch in train_loader:
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
 
             optimizer.zero_grad()
@@ -63,7 +63,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, l
         val_preds, val_labels = [], []
 
         with torch.no_grad():
-            for X_batch, y_batch in val_loader:
+            for X_batch, y_batch, path_batch in val_loader:
                 X_batch, y_batch = X_batch.to(device), y_batch.to(device)
                 outputs = model(X_batch)
                 loss = criterion(outputs, y_batch)

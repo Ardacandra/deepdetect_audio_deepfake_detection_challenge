@@ -52,7 +52,7 @@ class EmbeddingFolderDataset(Dataset):
         x = np.load(path)   # (embedding_dim,)
         x = torch.tensor(x, dtype=torch.float32)
         y = torch.tensor(label, dtype=torch.long)
-        return x, y
+        return x, y, path
 
 def load_datasets(base_dir, batch_size=64):
     label_map = {"":-1, "real": 0, "fake": 1} #-1 to flag that it is not labelled
