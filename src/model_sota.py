@@ -8,6 +8,7 @@ from sklearn.metrics import f1_score
 import math
 from glob import glob
 import random
+import numpy as np
 
 ####################
 # Utilities
@@ -269,20 +270,50 @@ class AudioFolderDataset(Dataset):
             waveform = self.transform(waveform)
 
         return waveform.squeeze(0), label, filepath
+    
+########################
+# Mixup function
+########################
+def mixup_data(x, y, alpha=0.4):
+    """Returns mixed inputs, pairs of targets, and lambda"""
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1.0
+    batch_size = x.size(0)
+    index = torch.randperm(batch_size).to(x.device)
+
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam
+
+def mixup_criterion(criterion, pred, y_a, y_b, lam):
+    return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
 
 ########################
 # Training utils
 ########################
-def train_one_epoch(model, loader, optimizer, criterion, device):
+def train_one_epoch(model, loader, optimizer, criterion, device, use_mixup=True):
     model.train()
     running_loss = 0.0
     all_preds, all_labels = [], []
 
     for wave, labels, path in loader:
         wave, labels = wave.to(device), labels.to(device)
+
+        # Mixup
+        if use_mixup:
+            wave, y_a, y_b, lam = mixup_data(wave, labels, alpha=0.4)
+            logits = model(waveform=wave)
+            loss = mixup_criterion(criterion, logits, y_a, y_b, lam)
+            preds = logits.argmax(dim=1)
+
+        else:
+            logits = model(waveform=wave)
+            loss = criterion(logits, labels)
+            preds = logits.argmax(dim=1)
+
         optimizer.zero_grad()
-        logits = model(waveform=wave)
-        loss = criterion(logits, labels)
         loss.backward()
         optimizer.step()
 
