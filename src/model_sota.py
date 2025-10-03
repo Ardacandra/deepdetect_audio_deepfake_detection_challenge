@@ -270,7 +270,7 @@ class AudioFolderDataset(Dataset):
 def train_one_epoch(model, loader, optimizer, criterion, device):
     model.train()
     running_loss, correct, total = 0.0, 0, 0
-    for wave, labels in loader:
+    for wave, labels, path in loader:
         wave, labels = wave.to(device), labels.to(device)
         optimizer.zero_grad()
         logits = model(waveform=wave)
@@ -288,7 +288,7 @@ def evaluate(model, loader, criterion, device):
     model.eval()
     running_loss, correct, total = 0.0, 0, 0
     with torch.no_grad():
-        for wave, labels in loader:
+        for wave, labels, path in loader:
             wave, labels = wave.to(device), labels.to(device)
             logits = model(waveform=wave)
             loss = criterion(logits, labels)
