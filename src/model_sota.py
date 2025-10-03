@@ -239,17 +239,23 @@ class AudioFolderDataset(Dataset):
     def __getitem__(self, idx):
         filepath = self.files[idx]
         label = self.labels[idx]
-        waveform, sr = torchaudio.load(filepath)
 
-        # resample if needed
-        if sr != self.sample_rate:
-            waveform = torchaudio.functional.resample(waveform, sr, self.sample_rate)
+        try:
+            waveform, sr = torchaudio.load(filepath)
 
-        # mono
-        if waveform.shape[0] > 1:
-            waveform = waveform.mean(dim=0, keepdim=True)
-        else:
-            waveform = waveform
+            # resample if needed
+            if sr != self.sample_rate:
+                waveform = torchaudio.functional.resample(waveform, sr, self.sample_rate)
+
+            # mono
+            if waveform.shape[0] > 1:
+                waveform = waveform.mean(dim=0, keepdim=True)
+
+        except Exception as e:
+            # If load fails → use silent placeholder
+            print(f"[WARN] Failed to load {filepath}: {e}")
+            waveform = torch.zeros(1, self.n_samples)  # 1 channel, fixed length
+            sr = self.sample_rate
 
         # pad or crop
         if waveform.shape[1] < self.n_samples:
