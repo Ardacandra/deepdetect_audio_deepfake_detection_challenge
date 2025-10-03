@@ -275,7 +275,9 @@ class AudioFolderDataset(Dataset):
 ########################
 def train_one_epoch(model, loader, optimizer, criterion, device):
     model.train()
-    running_loss, correct, total = 0.0, 0, 0
+    running_loss = 0.0
+    all_preds, all_labels = [], []
+
     for wave, labels, path in loader:
         wave, labels = wave.to(device), labels.to(device)
         optimizer.zero_grad()
@@ -285,21 +287,32 @@ def train_one_epoch(model, loader, optimizer, criterion, device):
         optimizer.step()
 
         running_loss += loss.item() * wave.size(0)
-        preds = logits.argmax(dim=1)
-        correct += (preds == labels).sum().item()
-        total += labels.size(0)
-    return running_loss / total, correct / total
+
+        preds = logits.argmax(dim=1).detach().cpu()
+        all_preds.extend(preds.tolist())
+        all_labels.extend(labels.detach().cpu().tolist())
+
+    avg_loss = running_loss / len(loader.dataset)
+    f1 = f1_score(all_labels, all_preds)
+    return avg_loss, f1
+
 
 def evaluate(model, loader, criterion, device):
     model.eval()
-    running_loss, correct, total = 0.0, 0, 0
+    running_loss = 0.0
+    all_preds, all_labels = [], []
+
     with torch.no_grad():
         for wave, labels, path in loader:
             wave, labels = wave.to(device), labels.to(device)
             logits = model(waveform=wave)
             loss = criterion(logits, labels)
             running_loss += loss.item() * wave.size(0)
-            preds = logits.argmax(dim=1)
-            correct += (preds == labels).sum().item()
-            total += labels.size(0)
-    return running_loss / total, correct / total
+
+            preds = logits.argmax(dim=1).detach().cpu()
+            all_preds.extend(preds.tolist())
+            all_labels.extend(labels.detach().cpu().tolist())
+
+    avg_loss = running_loss / len(loader.dataset)
+    f1 = f1_score(all_labels, all_preds)
+    return avg_loss, f1
